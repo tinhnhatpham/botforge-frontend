@@ -14,12 +14,16 @@
   // 👇 CONFIGURE THIS FOR EACH CUSTOMER
   // ============================================================
   const CONFIG = {
-    botId: "6aeb6cc0",               // 👈 Paste the Bot ID from the builder
-    botName: "Aria",                          // Bot's display name
-    welcomeMessage: "Hi there! 👋 How can I help you today?",
-    placeholder: "Type a message...",
-    accentColor: "#6c63ff",                   // Brand color (hex)
+    botId: "6aeb6cc0",               // 👈 Only thing you need to change per customer
     backendUrl: "https://botforge-backend-production-6e09.up.railway.app",      // Your Railway backend URL
+  };
+
+  // Everything else loads automatically from the database!
+  let BOT = {
+    botName: "Assistant",
+    welcomeMessage: "Hi! How can I help you today?",
+    accentColor: "#6c63ff",
+    placeholder: "Type a message..."
   };
   // ============================================================
 
@@ -312,6 +316,38 @@
   const input = document.getElementById('bf-input');
   const sendBtn = document.getElementById('bf-send');
 
+  // Load bot info from database and apply it
+  async function loadBotInfo() {
+    try {
+      const res = await fetch(`${CONFIG.backendUrl}/bots/${CONFIG.botId}`);
+      const data = await res.json();
+      if (data.bot) {
+        BOT.botName = data.bot.name || BOT.botName;
+        BOT.welcomeMessage = data.bot.welcome_message || BOT.welcomeMessage;
+        BOT.accentColor = data.bot.accent_color || BOT.accentColor;
+
+        // Apply bot name to header
+        document.getElementById('bf-header-name').textContent = BOT.botName;
+        document.getElementById('bf-input').placeholder = BOT.placeholder;
+
+        // Apply accent color dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+          #bf-bubble { background: ${BOT.accentColor} !important; box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 0 ${BOT.accentColor}44 !important; }
+          #bf-header { background: ${BOT.accentColor} !important; }
+          #bf-send { background: ${BOT.accentColor} !important; }
+          #bf-input:focus { border-color: ${BOT.accentColor} !important; }
+          #bf-footer a { color: ${BOT.accentColor} !important; }
+          .bf-msg.user .bf-msg-bubble { background: ${BOT.accentColor} !important; }
+          .bf-msg.bot .bf-msg-avatar { background: ${BOT.accentColor}22 !important; }
+        `;
+        document.head.appendChild(style);
+      }
+    } catch (e) {
+      console.log('BotForge: Could not load bot info, using defaults.');
+    }
+  }
+
   // Toggle open/close
   function toggle() {
     isOpen = !isOpen;
@@ -319,10 +355,13 @@
     bubble.classList.toggle('open', isOpen);
     if (isOpen && !initialized) {
       initialized = true;
-      addMessage('bot', CONFIG.welcomeMessage);
+      addMessage('bot', BOT.welcomeMessage);
       input.focus();
     }
   }
+
+  // Load bot info on page load
+  loadBotInfo();
 
   bubble.addEventListener('click', toggle);
   document.getElementById('bf-close').addEventListener('click', toggle);
