@@ -134,8 +134,8 @@
     <div class="sidebar-section">
       <div class="section-label">02b — Or Scrape Website</div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input id="scrapeUrl" type="text" placeholder="e.g. marios-pizza.com" style="font-weight:400;font-size:13px" />
-        <button onclick="scrapeWebsite()" id="scrapeBtn" style="padding:10px 14px;background:var(--accent2);border:none;border-radius:8px;color:white;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s">🌐 Scrape</button>
+        <input id="scrapeUrl" type="text" placeholder="e.g. marios-pizza.com" style="font-weight:400;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();scrapeWebsite();}" />
+        <button type="button" onclick="scrapeWebsite()" id="scrapeBtn" style="padding:10px 14px;background:var(--accent2);border:none;border-radius:8px;color:white;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s">🌐 Scrape</button>
       </div>
       <div id="scrapeStatus" style="font-size:11px;font-family:var(--mono);color:var(--muted);display:none;padding:8px;background:var(--surface2);border-radius:6px;line-height:1.6"></div>
     </div>
@@ -194,7 +194,7 @@
   // ============================================
   // 👇 YOUR RAILWAY BACKEND URL
   // ============================================
-  const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
+  const BACKEND_URL = "YOUR_RAILWAY_URL_HERE";
 
   let docs = [];
   let persona = 'professional';
@@ -241,7 +241,10 @@
 
   async function scrapeWebsite() {
     const url = document.getElementById('scrapeUrl').value.trim();
-    if (!url) return;
+    if (!url) {
+      showToast('Please enter a website URL first!');
+      return;
+    }
 
     const btn = document.getElementById('scrapeBtn');
     const status = document.getElementById('scrapeStatus');
