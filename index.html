@@ -194,7 +194,7 @@
   // ============================================
   // 👇 YOUR RAILWAY BACKEND URL
   // ============================================
-const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
+  const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
 
   let docs = [];
   let persona = 'professional';
@@ -289,9 +289,9 @@ const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
         status.innerHTML = `✅ ${data.message}<br>${data.pages.map(p => `📄 ${p.url} (${p.chars} chars)`).join('<br>')}`;
         showToast(`Scraped ${data.pages.length} pages! 🎉`);
 
-        // Add scraped pages to doc list display
+        // Add scraped pages to doc list (scraped:true = already saved to DB, skip on save)
         data.pages.forEach(p => {
-          docs.push({ name: p.url, content: '(scraped)' });
+          docs.push({ name: p.url, content: '(scraped)', scraped: true });
         });
         renderDocList();
       }
@@ -318,8 +318,9 @@ const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
       const botData = await botRes.json();
       currentBotId = botData.bot_id;
 
-      // 2. Upload documents
+      // 2. Upload documents (skip scraped ones — already saved to DB by scraper)
       for (const doc of docs) {
+        if (doc.scraped) continue;
         await fetch(`${BACKEND_URL}/bots/${currentBotId}/documents`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
