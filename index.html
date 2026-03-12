@@ -132,6 +132,15 @@
     </div>
 
     <div class="sidebar-section">
+      <div class="section-label">02b — Or Scrape Website</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="scrapeUrl" type="text" placeholder="e.g. marios-pizza.com" style="font-weight:400;font-size:13px" />
+        <button onclick="scrapeWebsite()" id="scrapeBtn" style="padding:10px 14px;background:var(--accent2);border:none;border-radius:8px;color:white;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.15s">🌐 Scrape</button>
+      </div>
+      <div id="scrapeStatus" style="font-size:11px;font-family:var(--mono);color:var(--muted);display:none;padding:8px;background:var(--surface2);border-radius:6px;line-height:1.6"></div>
+    </div>
+
+    <div class="sidebar-section">
       <div class="section-label">03 — Persona</div>
       <div class="persona-grid">
         <button class="persona-btn active" data-persona="professional">💼 Professional</button>
@@ -185,7 +194,7 @@
   // ============================================
   // 👇 YOUR RAILWAY BACKEND URL
   // ============================================
-  const BACKEND_URL = "https://botforge-backend-production-6e09.up.railway.app";
+  const BACKEND_URL = "YOUR_RAILWAY_URL_HERE";
 
   let docs = [];
   let persona = 'professional';
@@ -229,6 +238,68 @@
       persona = btn.dataset.persona;
     });
   });
+
+  async function scrapeWebsite() {
+    const url = document.getElementById('scrapeUrl').value.trim();
+    if (!url) return;
+
+    const btn = document.getElementById('scrapeBtn');
+    const status = document.getElementById('scrapeStatus');
+    btn.textContent = '⏳ Scraping...';
+    btn.disabled = true;
+    status.style.display = 'block';
+    status.textContent = 'Scraping website...';
+
+    try {
+      // First save the bot if not already saved
+      let botId = currentBotId;
+      if (!botId) {
+        const name = document.getElementById('botName').value.trim() || 'My Assistant';
+        const botRes = await fetch(`${BACKEND_URL}/bots`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, persona, accentColor: '#6c63ff', welcomeMessage: `Hi! I'm ${name}. How can I help you today?` })
+        });
+        const botData = await botRes.json();
+        botId = botData.bot_id;
+        currentBotId = botId;
+        document.getElementById('botIdBox').style.display = 'block';
+        document.getElementById('botIdHint').style.display = 'none';
+        document.getElementById('botIdValue').textContent = botId;
+        document.getElementById('botIdTag').textContent = `ID: ${botId}`;
+        document.getElementById('botIdTag').style.display = 'block';
+      }
+
+      const res = await fetch(`${BACKEND_URL}/scrape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, bot_id: botId })
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        status.style.color = 'var(--accent2)';
+        status.textContent = '❌ ' + data.error;
+      } else {
+        status.style.color = 'var(--success)';
+        status.innerHTML = `✅ ${data.message}<br>${data.pages.map(p => `📄 ${p.url} (${p.chars} chars)`).join('<br>')}`;
+        showToast(`Scraped ${data.pages.length} pages! 🎉`);
+
+        // Add scraped pages to doc list display
+        data.pages.forEach(p => {
+          docs.push({ name: p.url, content: '(scraped)' });
+        });
+        renderDocList();
+      }
+    } catch (err) {
+      status.style.color = 'var(--accent2)';
+      status.textContent = '❌ Could not reach backend.';
+    }
+
+    btn.textContent = '🌐 Scrape';
+    btn.disabled = false;
+  }
 
   async function saveAndLaunch() {
     const name = document.getElementById('botName').value.trim() || 'My Assistant';
