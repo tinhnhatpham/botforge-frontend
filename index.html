@@ -273,8 +273,10 @@
 
         // Store scraped content locally — uploaded when Save is clicked
         data.pages.forEach(p => {
-          docs.push({ name: p.name || p.url, content: p.content });
+          console.log('Page:', p.name, 'Content length:', p.content ? p.content.length : 'EMPTY');
+          docs.push({ name: p.name || p.url, content: p.content || '' });
         });
+        console.log('Total docs:', docs.length, docs.map(d => ({name: d.name, len: d.content.length})));
         renderDocList();
       }
     } catch (err) {
