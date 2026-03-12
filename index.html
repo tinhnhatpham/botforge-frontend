@@ -239,64 +239,46 @@
     });
   });
 
+  // scrapedContent stores raw page content locally until Save is clicked
+  let scrapedContent = [];
+
   async function scrapeWebsite() {
     const url = document.getElementById('scrapeUrl').value.trim();
-    if (!url) {
-      showToast('Please enter a website URL first!');
-      return;
-    }
+    if (!url) { showToast('Please enter a website URL first!'); return; }
 
     const btn = document.getElementById('scrapeBtn');
     const status = document.getElementById('scrapeStatus');
     btn.textContent = '⏳ Scraping...';
     btn.disabled = true;
     status.style.display = 'block';
-    status.textContent = 'Scraping website...';
+    status.textContent = 'Scraping website — this may take a few seconds...';
 
     try {
-      // First save the bot if not already saved
-      let botId = currentBotId;
-      if (!botId) {
-        const name = document.getElementById('botName').value.trim() || 'My Assistant';
-        const botRes = await fetch(`${BACKEND_URL}/bots`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, persona, accentColor: '#6c63ff', welcomeMessage: `Hi! I'm ${name}. How can I help you today?` })
-        });
-        const botData = await botRes.json();
-        botId = botData.bot_id;
-        currentBotId = botId;
-        document.getElementById('botIdBox').style.display = 'block';
-        document.getElementById('botIdHint').style.display = 'none';
-        document.getElementById('botIdValue').textContent = botId;
-        document.getElementById('botIdTag').textContent = `ID: ${botId}`;
-        document.getElementById('botIdTag').style.display = 'block';
-      }
-
+      // Scrape without bot_id — just fetch content, don't save to DB yet
       const res = await fetch(`${BACKEND_URL}/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, bot_id: botId })
+        body: JSON.stringify({ url })
       });
 
       const data = await res.json();
 
       if (data.error) {
-        status.style.color = 'var(--accent2)';
+        status.style.color = '#ff4757';
         status.textContent = '❌ ' + data.error;
       } else {
-        status.style.color = 'var(--success)';
+        status.style.color = '#00d4aa';
         status.innerHTML = `✅ ${data.message}<br>${data.pages.map(p => `📄 ${p.url} (${p.chars} chars)`).join('<br>')}`;
-        showToast(`Scraped ${data.pages.length} pages! 🎉`);
+        showToast(`Scraped ${data.pages.length} pages! Click Save Bot & Launch to finish.`);
 
-        // Add scraped pages to doc list (scraped:true = already saved to DB, skip on save)
+        // Store scraped content locally — uploaded when Save is clicked
         data.pages.forEach(p => {
-          docs.push({ name: p.url, content: '(scraped)', scraped: true });
+          docs.push({ name: p.name || p.url, content: p.content });
         });
         renderDocList();
       }
     } catch (err) {
-      status.style.color = 'var(--accent2)';
+      status.style.color = '#ff4757';
       status.textContent = '❌ Could not reach backend.';
     }
 
@@ -318,9 +300,8 @@
       const botData = await botRes.json();
       currentBotId = botData.bot_id;
 
-      // 2. Upload documents (skip scraped ones — already saved to DB by scraper)
+      // 2. Upload ALL documents (manual uploads + scraped content)
       for (const doc of docs) {
-        if (doc.scraped) continue;
         await fetch(`${BACKEND_URL}/bots/${currentBotId}/documents`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
